@@ -19,9 +19,9 @@ def main():
     parser.add_argument("-i", "--input", required=True, help="Input BAM or FASTQ file")
     parser.add_argument("-o", "--output", required=True, help="Output file for passed reads")
     parser.add_argument("-f", "--format", required=True, choices=["bam", "fastq"], help="Input file format")
-    parser.add_argument("-r", "--read_ids", help="Path to file with read IDs (one per line, optional)")
-    parser.add_argument("--min_qscore", type=float, default=0.0, help="Minimum mean quality score per read")
-    parser.add_argument("--min_length", type=int, default=0, help="Minimum read length")
+    parser.add_argument("-r", "--read-ids", help="Path to file with read IDs (one per line, optional)")
+    parser.add_argument("--min-qscore", type=float, default=0.0, help="Minimum mean quality score per read")
+    parser.add_argument("--min-length", type=int, default=0, help="Minimum read length")
 
     args = parser.parse_args()
     read_ids = read_id_list(args.read_ids) if args.read_ids else None
