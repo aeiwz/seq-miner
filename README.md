@@ -8,7 +8,6 @@
 
 Built for researchers working in genomics, transcriptomics, and metagenomics.
 
----
 
 ## Installation
 
@@ -18,7 +17,6 @@ Install via `pip`:
 pip install seq-miner
 ```
 
----
 
 ## Usage
 
@@ -38,7 +36,6 @@ seq-miner -i sample.fastq -o filtered.fastq -f fastq --min_qscore 15 --min_lengt
 seq-miner -i reads.bam -o matched.bam -f bam -r read_ids.txt --min_qscore 10 --min_length 200
 ```
 
----
 
 ## Options
 
@@ -51,7 +48,6 @@ seq-miner -i reads.bam -o matched.bam -f bam -r read_ids.txt --min_qscore 10 --m
 | `--min_qscore`      | Minimum average quality score per read (default: `0`)        |
 | `--min_length`      | Minimum length per read (default: `0`)                       |
 
----
 
 ## Input Examples
 
@@ -71,7 +67,6 @@ read00044
 read20398
 ```
 
----
 
 ## Output
 
@@ -81,7 +76,6 @@ read20398
   - Low-quality reads
   - Short reads
 
----
 
 ## Dependencies
 
@@ -90,7 +84,6 @@ read20398
 
 Installable automatically via `pip install seq-miner`.
 
----
 
 ## Publishing (for maintainers)
 
@@ -103,14 +96,12 @@ twine upload dist/*
 
 Or use GitHub Actions (see `.github/workflows/pypi-release.yml`) for trusted publishing.
 
----
 
 ## License
 
 MIT License © Theerayut  
 See [LICENSE](LICENSE) for full text.
 
----
 
 ## Contact
 
