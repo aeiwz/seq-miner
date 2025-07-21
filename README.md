@@ -1,101 +1,85 @@
 # seq-miner
 
-**seq-miner** is a fast, Python-based command-line tool to extract and filter sequence reads from BAM and FASTQ files by:
+**seq-miner** is a lightweight, fast, and parallelizable tool to extract and filter reads from **BAM** or **FASTQ** files based on:
 
-- Read ID (single or batch)
-- Mean quality score
+- Specific read IDs
+- Mean quality score threshold
 - Minimum read length
-
-Built for researchers working in genomics, transcriptomics, and metagenomics.
+- Multi-threading (FASTQ)
+- JSON/CSV-ready summary (optional)
+- GitHub release tagging and PyPI publish automation
 
 
 ## Installation
-
-Install via `pip`:
 
 ```bash
 pip install seq-miner
 ```
 
+Or clone from source:
+
+```bash
+git clone https://github.com/your-org/seq-miner.git
+cd seq-miner
+pip install .
+```
+
 
 ## Usage
 
-```bash
-seq-miner --input INPUT --output OUTPUT --format FORMAT [options]
-```
-
-### Example 1: Filter FASTQ reads by Q-score and length
+### Extract reads from BAM
 
 ```bash
-seq-miner -i sample.fastq -o filtered.fastq -f fastq --min_qscore 15 --min_length 100
+seq-miner -i reads.bam -o filtered.bam -f bam -r read_ids.txt --min-qscore 10 --min-length 200
 ```
 
-### Example 2: Extract specific read IDs from a BAM file
+### Filter FASTQ reads in parallel
 
 ```bash
-seq-miner -i reads.bam -o matched.bam -f bam -r read_ids.txt --min_qscore 10 --min_length 200
+seq-miner -i reads.fastq -o filtered.fastq -f fastq --min-qscore 15 --min-length 1000 --threads 4
 ```
 
-
-## Options
-
-| Flag               | Description                                                  |
-|--------------------|--------------------------------------------------------------|
-| `-i`, `--input`     | Input BAM or FASTQ file                                      |
-| `-o`, `--output`    | Output file to write filtered/passed reads                  |
-| `-f`, `--format`    | File format: `bam` or `fastq`                                |
-| `-r`, `--read_ids`  | File containing read IDs (one per line, optional)            |
-| `--min_qscore`      | Minimum average quality score per read (default: `0`)        |
-| `--min_length`      | Minimum length per read (default: `0`)                       |
-
-
-## Input Examples
-
-### FASTQ file (`.fastq`)
-
-Supports gzipped or plain FASTQ format.
-
-### BAM file (`.bam`)
-
-Requires [pysam](https://github.com/pysam-developers/pysam) under the hood.
-
-### Read ID file (optional)
-
-```txt
-read00001
-read00044
-read20398
-```
-
-
-## Output
-
-- Filtered reads saved to the specified output file.
-- CLI prints counts of:
-  - Passed reads
-  - Low-quality reads
-  - Short reads
-
-
-## Dependencies
-
-- [Biopython](https://biopython.org/)
-- [pysam](https://github.com/pysam-developers/pysam)
-
-Installable automatically via `pip install seq-miner`.
-
-
-## Publishing (for maintainers)
-
-To publish:
+### Show version
 
 ```bash
-python -m build
-twine upload dist/*
+seq-miner --version
 ```
 
-Or use GitHub Actions (see `.github/workflows/pypi-release.yml`) for trusted publishing.
 
+## Command-line Options
+
+| Option            | Description                                          |
+|-------------------|------------------------------------------------------|
+| `-i`, `--input`   | Input BAM or FASTQ file                              |
+| `-o`, `--output`  | Output file for passed reads                         |
+| `-f`, `--format`  | File format: `bam` or `fastq`                        |
+| `-r`, `--read-ids`| Optional file with read IDs (one per line)          |
+| `--min-qscore`    | Minimum mean Q-score (default: `0.0`)               |
+| `--min-length`    | Minimum read length (default: `0`)                  |
+| `--threads`       | Number of CPU threads (only used for FASTQ)         |
+| `--verbose`       | Enable verbose logging                               |
+| `--version`       | Print the current version                            |
+
+
+## Output Summary
+
+When finished, you'll see:
+
+```
+Summary:
+Passed reads     : 12345
+Low-quality reads : 54
+Short reads      : 91
+```
+
+Optionally, you can pipe this to JSON or CSV (coming soon).
+
+
+## Auto Version + Release
+
+- Version is stored in [`seqminer/__version__.py`](seqminer/__version__.py)
+- Tagged automatically with GitHub Actions on push to `main`
+- Published to PyPI on GitHub release
 
 ## License
 
