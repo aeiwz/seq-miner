@@ -1,11 +1,9 @@
 import os
 import gzip
-import re
-from statistics import mean
-from itertools import islice
-from multiprocessing import Pool, cpu_count
-
 from Bio import SeqIO
+from statistics import mean
+from multiprocessing import Pool, cpu_count
+from itertools import islice
 import pysam
 
 
@@ -26,117 +24,118 @@ def chunker(iterator, size):
         yield chunk
 
 
-def extract_barcode_from_id(read_id):
-    match = re.search(r"(barcode\d+)", read_id)
-    return match.group(1) if match else "unknown"
+def extract_barcode_from_name(name):
+    for part in name.split():
+        if part.startswith("barcode"):
+            return part
+    return None
 
 
-def extract_barcode_from_bam(read):
+def extract_barcode_from_read(read):
     try:
         return read.get_tag("CB")
-    except KeyError:
-        return extract_barcode_from_id(read.query_name) or "unknown"
-
-
-def filter_record(record, min_qscore=0, min_length=0, read_ids=None):
-    avg_q = mean(record.letter_annotations["phred_quality"])
-    if len(record.seq) < min_length:
-        return "short", record
-    elif avg_q < min_qscore:
-        return "low_q", record
-    elif read_ids is None or record.id in read_ids:
-        return "passed", record
-    return None, None
-
-
-def process_batch(records, min_qscore, min_length, read_ids):
-    results = {"passed": [], "low_q": [], "short": []}
-    for record in records:
-        status, r = filter_record(record, min_qscore, min_length, read_ids)
-        if status:
-            results[status].append(r)
-    return results
+    except Exception:
+        return extract_barcode_from_name(read.query_name)
 
 
 def extract_from_fastq(input_fastq, output_dir, read_ids=None, min_qscore=0, min_length=0, threads=None, verbose=False, gzip_out=False):
-    os.makedirs(output_dir, exist_ok=True)
     n_cpu = threads or cpu_count()
     batch_size = 10000
-    total = {"passed": 0, "low_q": 0, "short": 0}
-    barcode_bins = {}
-    low_q_short_file = os.path.join(output_dir, "low_Q_short.fastq" + (".gz" if gzip_out else ""))
-    writer_kwargs = {"format": "fastq"}
+    passed_by_barcode = {}
+    rejected_reads = []
+    count = {"total": 0, "passed": 0, "low_q": 0, "short": 0}
 
-    with smart_open(input_fastq) as in_f, smart_open(low_q_short_file, "wt") as lqf:
+    def filter_record(record):
+        count["total"] += 1
+        avg_q = mean(record.letter_annotations["phred_quality"])
+        if len(record.seq) < min_length:
+            count["short"] += 1
+            return "short", record
+        elif avg_q < min_qscore:
+            count["low_q"] += 1
+            return "low_q", record
+        elif (read_ids is None or record.id in read_ids):
+            count["passed"] += 1
+            return "passed", record
+        return None, None
+
+    with smart_open(input_fastq) as in_f:
         parser = SeqIO.parse(in_f, "fastq")
-        with Pool(processes=n_cpu) as pool:
-            for i, batch in enumerate(chunker(parser, batch_size), 1):
-                job = pool.apply_async(process_batch, (batch, min_qscore, min_length, read_ids))
-                result = job.get()
+        for batch in chunker(parser, batch_size):
+            for record in batch:
+                status, r = filter_record(record)
+                if status == "passed":
+                    bc = extract_barcode_from_name(r.id) or "unknown"
+                    passed_by_barcode.setdefault(bc, []).append(r)
+                elif status in {"low_q", "short"}:
+                    rejected_reads.append(r)
 
-                total["passed"] += len(result["passed"])
-                total["low_q"] += len(result["low_q"])
-                total["short"] += len(result["short"])
+            if verbose:
+                print(f"[INFO] Processed {count['total']} reads "
+                      f"(Passed: {count['passed']}, Low-Q: {count['low_q']}, Short: {count['short']})")
 
-                for rec in result["passed"]:
-                    barcode = extract_barcode_from_id(rec.id)
-                    if barcode not in barcode_bins:
-                        barcode_dir = os.path.join(output_dir, barcode)
-                        os.makedirs(barcode_dir, exist_ok=True)
-                        barcode_file = os.path.join(barcode_dir, f"{barcode}.fastq" + (".gz" if gzip_out else ""))
-                        barcode_bins[barcode] = smart_open(barcode_file, "wt")
+    # Write passed by barcode
+    for bc, recs in passed_by_barcode.items():
+        bc_dir = os.path.join(output_dir, bc)
+        os.makedirs(bc_dir, exist_ok=True)
+        bc_file = os.path.join(bc_dir, f"{bc}.fastq.gz" if gzip_out else f"{bc}.fastq")
+        with smart_open(bc_file, "wt") as f:
+            SeqIO.write(recs, f, "fastq")
 
-                    SeqIO.write(rec, barcode_bins[barcode], **writer_kwargs)
+    # Write unclassified
+    rej_file = os.path.join(output_dir, "unclassified.fastq.gz" if gzip_out else "unclassified.fastq")
+    with smart_open(rej_file, "wt") as f:
+        SeqIO.write(rejected_reads, f, "fastq")
 
-                SeqIO.write(result["low_q"] + result["short"], lqf, **writer_kwargs)
-
-                if verbose:
-                    print(f"[DEBUG] Batch {i} complete — Passed: {total['passed']}, LowQ: {total['low_q']}, Short: {total['short']}")
-
-        for handle in barcode_bins.values():
-            handle.close()
-
-    return total["passed"], total["low_q"], total["short"]
+    return count
 
 
 def extract_from_bam(input_bam, output_dir, read_ids=None, min_qscore=0, min_length=0, verbose=False):
+    passed_by_barcode = {}
+    rejected_reads = []
+    count = {"total": 0, "passed": 0, "low_q": 0, "short": 0}
+
+    infile = pysam.AlignmentFile(input_bam, "rb")
+    bam_writers = {}
+
+    # Writer for rejected
     os.makedirs(output_dir, exist_ok=True)
-    read_ids = set(read_ids) if read_ids else None
-    total = {"passed": 0, "low_q": 0, "short": 0}
-    barcode_bins = {}
-    low_q_short_file = os.path.join(output_dir, "low_Q_short.bam")
+    rejected_path = os.path.join(output_dir, "unclassified.bam")
+    rejected_out = pysam.AlignmentFile(rejected_path, "wb", template=infile)
 
-    with pysam.AlignmentFile(input_bam, "rb") as infile, \
-         pysam.AlignmentFile(low_q_short_file, "wb", template=infile) as lqf:
+    for read in infile:
+        count["total"] += 1
+        if read_ids and read.query_name not in read_ids:
+            continue
+        if read.is_unmapped:
+            continue
+        seq = read.query_sequence
+        qual = read.query_qualities
+        mean_q = mean(qual) if qual else 0
 
-        for i, read in enumerate(infile, 1):
-            if read_ids and read.query_name not in read_ids:
-                continue
+        if len(seq) < min_length:
+            count["short"] += 1
+            rejected_out.write(read)
+        elif mean_q < min_qscore:
+            count["low_q"] += 1
+            rejected_out.write(read)
+        else:
+            count["passed"] += 1
+            bc = extract_barcode_from_read(read) or "unknown"
+            bc_dir = os.path.join(output_dir, bc)
+            os.makedirs(bc_dir, exist_ok=True)
+            bc_file = os.path.join(bc_dir, f"{bc}.bam")
 
-            seq = read.query_sequence
-            qual = read.query_qualities
-            mean_q = mean(qual) if qual else 0
+            if bc not in bam_writers:
+                bam_writers[bc] = pysam.AlignmentFile(bc_file, "wb", template=infile)
+            bam_writers[bc].write(read)
 
-            if len(seq) < min_length:
-                total["short"] += 1
-                lqf.write(read)
-            elif mean_q < min_qscore:
-                total["low_q"] += 1
-                lqf.write(read)
-            else:
-                total["passed"] += 1
-                barcode = extract_barcode_from_bam(read)
-                if barcode not in barcode_bins:
-                    barcode_dir = os.path.join(output_dir, barcode)
-                    os.makedirs(barcode_dir, exist_ok=True)
-                    barcode_file = os.path.join(barcode_dir, f"{barcode}.bam")
-                    barcode_bins[barcode] = pysam.AlignmentFile(barcode_file, "wb", template=infile)
-                barcode_bins[barcode].write(read)
+        if verbose and count["total"] % 5000 == 0:
+            print(f"[INFO] Processed {count['total']} reads "
+                  f"(Passed: {count['passed']}, Low-Q: {count['low_q']}, Short: {count['short']})")
 
-            if verbose and i % 10000 == 0:
-                print(f"[DEBUG] Processed {i} reads: Passed={total['passed']}, LowQ={total['low_q']}, Short={total['short']}")
-
-    for handle in barcode_bins.values():
-        handle.close()
-
-    return total["passed"], total["low_q"], total["short"]
+    for writer in bam_writers.values():
+        writer.close()
+    rejected_out.close()
+    infile.close()
+    return count
