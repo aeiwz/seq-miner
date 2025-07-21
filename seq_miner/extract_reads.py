@@ -69,9 +69,9 @@ if __name__ == "__main__":
     parser.add_argument("--input", "-i", required=True, help="Input BAM or FASTQ file")
     parser.add_argument("--output", "-o", required=True, help="Output file for passed reads")
     parser.add_argument("--format", "-f", required=True, choices=["bam", "fastq"], help="Input file format")
-    parser.add_argument("--read_ids", "-r", help="File with list of read IDs to extract (optional)")
-    parser.add_argument("--min_qscore", type=float, default=0, help="Minimum mean Q score")
-    parser.add_argument("--min_length", type=int, default=0, help="Minimum read length")
+    parser.add_argument("--read-ids", "-r", help="File with list of read IDs to extract (optional)")
+    parser.add_argument("--min-qscore", type=float, default=0, help="Minimum mean Q score")
+    parser.add_argument("--min-length", type=int, default=0, help="Minimum read length")
 
     args = parser.parse_args()
 
