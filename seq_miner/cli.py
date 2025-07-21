@@ -8,11 +8,11 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=textwrap.dedent("""
             Examples:
-              # Extract specific read IDs from a BAM file
-              extract-reads -i input.bam -o passed.bam -f bam -r read_ids.txt --min_qscore 10 --min_length 200
-
-              # Extract all reads from FASTQ with filtering only
-              extract-reads -i input.fastq -o passed.fastq -f fastq --min_qscore 15 --min_length 1000
+              # Extract reads by ID from BAM
+              seq-miner -i input.bam -o passed.bam -f bam -r read_ids.txt --min_qscore 10 --min_length 200
+        
+              # Filter FASTQ reads
+              seq-miner -i input.fastq -o passed.fastq -f fastq --min_qscore 15 --min_length 1000
         """)
     )
 
