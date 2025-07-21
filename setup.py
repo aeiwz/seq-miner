@@ -4,7 +4,7 @@ setup(
     name="seq-miner",
     version="0.1.0",
     description="Extract and filter reads from BAM/FASTQ by ID, quality, and length.",
-    author="Your Name",
+    author="Aeiwz",
     packages=find_packages(),
     install_requires=[
         "pysam",
