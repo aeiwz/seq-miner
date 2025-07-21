@@ -24,3 +24,5 @@ Source = "https://github.com/aeiwz/seq-miner"
 
 [project.scripts]
 seq-miner = "seq_miner.cli:main"
+[tool.setuptools.dynamic]
+version = {attr = "seqminer.__version__.__version__"}
