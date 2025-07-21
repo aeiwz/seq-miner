@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "seq-miner"
+version = "0.1.0"
+description = "A command-line tool to extract and filter sequence reads from BAM and FASTQ files by ID, quality score, and length."
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+  {name = "Your Name", email = "theerayut_aeiw_123@hotmail.com"}
+]
+requires-python = ">=3.7"
+dependencies = [
+  "pysam",
+  "biopython"
+]
+
+[project.urls]
+Homepage = "https://github.com/aeiwz/seq-miner"
+Documentation = "https://github.com/aeiwz/seq-miner#readme"
+Source = "https://github.com/aeiwz/seq-miner"
+
+[project.scripts]
+seq-miner = "seq_miner.cli:main"
