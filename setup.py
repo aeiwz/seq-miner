@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="seq-miner",
-    version="1.1.0",
+    version="1.2.0",
     description="Extract and filter reads from BAM/FASTQ by ID, quality, and length.",
     author="Aeiwz",
     packages=find_packages(),
