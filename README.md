@@ -1,6 +1,6 @@
 # seq-miner
 
-**seq-miner** is a lightweight, fast, and parallelizable tool to extract and filter reads from **BAM** or **FASTQ** files based on:
+**seq-miner** is a lightweight tool to extract and filter reads from **BAM** or **FASTQ** files based on:
 
 - Specific read IDs
 - Mean quality score threshold
