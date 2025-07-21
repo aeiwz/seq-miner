@@ -5,6 +5,7 @@ import sys
 import json
 import csv
 from datetime import datetime
+from .__version__ import __version__
 
 VERSION = "1.0.0"  # update with your version
 
@@ -49,7 +50,7 @@ def main():
     parser.add_argument("--summary", help="Output summary to CSV or JSON file")
     parser.add_argument("--log", help="Log file path")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
-    parser.add_argument("--version", action="version", version=f"%(prog)s {VERSION}")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
     args = parser.parse_args()
     read_ids = read_id_list(args.read_ids) if args.read_ids else None
