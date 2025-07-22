@@ -7,7 +7,6 @@
 - Minimum read length
 - Multi-threading (FASTQ)
 - JSON/CSV-ready summary (optional)
-- GitHub release tagging and PyPI publish automation
 
 
 ## Installation
