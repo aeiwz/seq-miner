@@ -3,7 +3,7 @@
 import argparse
 import sys
 from .extract_reads import extract_from_fastq, extract_from_bam, read_id_list
-from .version import __version__
+from .__version__ import __version__
 
 def main():
     parser = argparse.ArgumentParser(
