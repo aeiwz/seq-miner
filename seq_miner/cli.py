@@ -3,6 +3,7 @@
 import argparse
 import sys
 from .extract_reads import extract_from_fastq, extract_from_bam, read_id_list
+from .version import __version__
 
 def main():
     parser = argparse.ArgumentParser(
@@ -20,6 +21,7 @@ def main():
     parser.add_argument('--log', help='Optional log file path')
     parser.add_argument('--threads', type=int, default=None, help='Number of parallel processes to use')
     parser.add_argument('--verbose', action='store_true', help='Show detailed progress during processing')
+    parser.add_argument('--version', action='version', version=f'seq-miner {__version__}')
 
     args = parser.parse_args()
 
